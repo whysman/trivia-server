@@ -18,6 +18,11 @@ type userEntry struct {
 	name string
 }
 
+type userJoin struct {
+	Name   string `json:"name"`
+	GameID string `json:"gameid"`
+}
+
 var activeGames = make(map[string]gameInfo)
 
 func main() {
@@ -28,7 +33,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
 }
 
 func createGame(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +56,15 @@ func listGames(w http.ResponseWriter, r *http.Request) {
 
 func joinGame(w http.ResponseWriter, r *http.Request) {
 	b, _ := ioutil.ReadAll(r.Body)
-	fmt.Println(string(b))
+	u := userJoin{}
+	json.Unmarshal(b, &u)
+	if _, ok := activeGames[string(u.GameID)]; ok {
+		ud := activeGames[string(u.GameID)].userData
+		ud = append(ud, userEntry{name: u.Name})
+		activeGames[string(u.GameID)] = gameInfo{gameID: string(u.GameID), userData: ud}
+		fmt.Println(activeGames[string(u.GameID)].userData)
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 func getKeys(m map[string]gameInfo) (keys []string) {
