@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type gameInfo struct {
@@ -31,16 +35,32 @@ type message struct {
 
 var activeGames = make(map[string]gameInfo)
 var upgrader = websocket.Upgrader{}
+var client *mongo.Client
 
 func main() {
+	client = connectToMongo()
 	//http.HandleFunc("/createGame", createGame)
 	//http.HandleFunc("/listGames", listGames)
 	//http.HandleFunc("/joinGame", joinGame)
+
 	http.HandleFunc("/wscomm", wsComm)
 	err := http.ListenAndServe(":4000", nil)
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func connectToMongo() *mongo.Client {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	return client
+}
+
+func initializeMongo() {
+	collection := client.Database("trivia").Collection("users")
 }
 
 func wsComm(w http.ResponseWriter, r *http.Request) {
